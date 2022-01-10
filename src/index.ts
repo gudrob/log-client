@@ -1,8 +1,8 @@
 import WebSocket from 'ws';
 import os from 'os';
-import checkDiskSpace from 'check-disk-space'
+import si from "systeminformation"
 
-export default class NodeSocketLogClient {
+export default class LogClient {
 
     private webSocket: WebSocket | undefined;        //You should initHealth on one thread, preferably the main thread
 
@@ -13,72 +13,73 @@ export default class NodeSocketLogClient {
     constructor(private ownAdress: string,
         public loggerAdress: string,
         authString: string,
-        public onClose: ((logger: NodeSocketLogClient, code: number) => void) | undefined = undefined,
-        public onError: ((logger: NodeSocketLogClient, error: Error) => void) | undefined = undefined) {
+        public onClose: ((logger: LogClient, code: number) => void) | undefined = undefined,
+        public onError: ((logger: LogClient, error: Error) => void) | undefined = undefined) {
 
-        this.initLogger(authString);
+        this.Start(authString);
     }
 
-    public initHealth() {
-        setInterval(() => { this.sendHealthInfo() }, 10000)
+    public StartMetrics() {
+        setInterval(() => { this.SendMetrics() }, 10000)
     }
 
-    public sendHealthInfo() {
-        checkDiskSpace('/').then((diskSpace) => {
-            let diskusage = (1 - diskSpace.free / diskSpace.size);
-            let diskfree = diskSpace.free;
-            let disktotal = diskSpace.size;
+    public async SendMetrics() {
+        let diskInfo = await si.disksIO();
+        let trafficInfo = await si.networkStats();
+        let diskUsageInfo = await si.fsSize();
 
-            this.webSocket?.send(JSON.stringify({
-                server: this.ownAdress,
-                severity: 0,
-                data: {
-                    cpus: os.loadavg(),
-                    free: os.freemem,
-                    total: os.totalmem,
-                    disk: {
-                        diskusage,
-                        diskfree,
-                        disktotal
-                    }
-                }
-            }));
-        });
+        this.webSocket?.send(JSON.stringify({
+            server: this.ownAdress,
+            severity: 0,
+            data: {
+                cpu: os.loadavg()[0],
+                ram_free: os.freemem,
+                ram_total: os.totalmem,
+                disk_read: diskInfo.rIO_sec,
+                disk_write: diskInfo.wIO_sec,
+                disk_wait: diskInfo.tWaitTime,
+                disk_usage: diskUsageInfo[0].size,
+                disk_total: diskUsageInfo[0].used,
+                traffic_in: trafficInfo[0].rx_bytes / 1024,
+                traffic_out: trafficInfo[0].tx_bytes / 1024,
+            }
+        }));
     }
 
-    public initLogger(authString: string) {
-        this.webSocket = new WebSocket(this.loggerAdress + "/log?auth=" + authString);
+    public Start(authString: string) {
+        this.webSocket = new WebSocket(`${this.loggerAdress}/log?auth=${authString}&name=${this.ownAdress}`);
 
         this.webSocket.on('open', () => {
-            this.message('Logger connected.');
+            this.Message('Logger connected.');
         });
 
         this.webSocket.on('error', (error: Error) => {
             if (this.onError)
                 this.onError(this, error);
             else
-                this.message(error.message);
+                this.Message(error.message);
         });
 
-        this.webSocket.on('close', (code) => {
-            this.message('Logger disconnected.');
+        this.webSocket.on('close', (code: number) => {
+            this.Message('Logger disconnected.');
             if (this.onClose) {
                 this.onClose(this, code);
             } else if (this.reconnect) {
                 setTimeout(() => {
-                    this.message('Attempting reconnect.');
-                    this.initLogger(authString);
+                    this.Message('Attempting reconnect.');
+                    this.Start(authString);
                 }, this.reconnectInterval);
             }
         });
     }
 
-    public message(message: string) {
+    public Message(message: string) {
         console.log(`[${new Date().toISOString()} - ${this.loggerAdress}] ${message}`);
     }
 
-    public log(severity = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, message: string, data: any) {
+    public Log(severity = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, message: string, data: any) {
         this.webSocket?.send(JSON.stringify({
+            time: Date.now(),
             server: this.ownAdress,
             severity,
             message,
