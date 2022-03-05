@@ -1,15 +1,15 @@
-export default class NodeSocketLogClient {
+export default class LogClient {
     private ownAdress;
     loggerAdress: string;
-    onClose: ((logger: NodeSocketLogClient, code: number) => void) | undefined;
-    onError: ((logger: NodeSocketLogClient, error: Error) => void) | undefined;
+    onClose: ((logger: LogClient, code: number) => void) | undefined;
+    onError: ((logger: LogClient, error: Error) => void) | undefined;
     private webSocket;
     reconnect: boolean;
     reconnectInterval: number;
-    constructor(ownAdress: string, loggerAdress: string, authString: string, onClose?: ((logger: NodeSocketLogClient, code: number) => void) | undefined, onError?: ((logger: NodeSocketLogClient, error: Error) => void) | undefined);
-    initHealth(): void;
-    sendHealthInfo(): void;
-    initLogger(authString: string): void;
-    message(message: string): void;
-    log(severity: number | undefined, message: string, data: any): void;
+    constructor(ownAdress: string, loggerAdress: string, authString: string, onClose?: ((logger: LogClient, code: number) => void) | undefined, onError?: ((logger: LogClient, error: Error) => void) | undefined);
+    StartMetrics(): void;
+    SendMetrics(): Promise<void>;
+    Start(authString: string): void;
+    Message(message: string): void;
+    Log(severity: number | undefined, message: string, data: any): void;
 }
