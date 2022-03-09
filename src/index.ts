@@ -77,13 +77,14 @@ export default class LogClient {
         console.log(`[${new Date().toISOString()} - ${this.loggerAdress}] ${message}`);
     }
 
-    public Log(severity = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, message: string, data: any) {
+    public Log(severity = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, message: string, channel: string, data: any) {
         if (data instanceof Error) { data = { stack: data.stack } }
         this.webSocket?.send(JSON.stringify({
             time: Date.now(),
             server: this.ownAdress,
             severity,
             message,
+            channel,
             data
         }));
     }
