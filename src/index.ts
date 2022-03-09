@@ -78,6 +78,7 @@ export default class LogClient {
     }
 
     public Log(severity = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, message: string, data: any) {
+        if (data instanceof Error) { data = { stack: data.stack } }
         this.webSocket?.send(JSON.stringify({
             time: Date.now(),
             server: this.ownAdress,
