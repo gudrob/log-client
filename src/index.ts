@@ -72,7 +72,9 @@ export default class LogClient {
         console.log(`[${new Date().toISOString()} - ${this.loggerAdress}] ${message}`);
     }
 
+
     public Log(severity = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, channel: string, message: string | undefined, data: any) {
+        if (data instanceof Error) { data = { exception: data.message, stack: data.stack } }
         this.webSocket?.send(JSON.stringify({
             time: Date.now(),
             channel,
