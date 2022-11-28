@@ -10,17 +10,17 @@ export default class LogClient {
         public onClose: ((logger: LogClient, code: number) => void) | undefined = undefined,
         public onError: ((logger: LogClient, error: Error) => void) | undefined = undefined) {
 
-        this.Start(authString);
+        this.start(authString);
     }
 
     /**
-     * Starts the predefined metrics logger, which is designed to work with McDuckes/log-server
+     * Starts the predefined metrics logger, which is designed to work with gudatr/log-server
      */
-    public StartMetrics() {
-        setInterval(() => { this.SendMetrics() }, 5000)
+    public startMetrics(interval: number) {
+        setInterval(() => { this.sendMetrics() }, interval)
     }
 
-    public async SendMetrics() {
+    public async sendMetrics() {
         let [diskInfo, trafficInfo, diskUsageInfo] = await Promise.all([si.disksIO(), si.networkStats(), si.fsSize()]);
 
         let data = {
@@ -36,44 +36,44 @@ export default class LogClient {
             traffic_out: trafficInfo[0].tx_bytes / 1024,
         };
 
-        this.Log(1, 'metrics', undefined, data);
+        this.log(1, 'metrics', undefined, data);
     }
 
-    public Start(authString: string) {
+    public start(authString: string) {
         this.webSocket =
 
             new WebSocket(`${this.loggerAdress}/log?auth=${authString}&name=${this.ownAdress}`)
 
                 .on('open', () => {
-                    this.Message('Logger connected.');
+                    this.message('Logger connected.');
                 })
 
                 .on('error', (error: Error) => {
                     if (this.onError)
                         this.onError(this, error);
                     else
-                        this.Message(error.message);
+                        this.message(error.message);
                 })
 
                 .on('close', (code: number) => {
-                    this.Message('Logger disconnected. Code: ' + code);
+                    this.message('Logger disconnected. Code: ' + code);
                     if (this.onClose) {
                         this.onClose(this, code);
                     } else if (this.reconnect) {
                         setTimeout(() => {
-                            this.Message('Attempting reconnect.');
-                            this.Start(authString);
+                            this.message('Attempting reconnect.');
+                            this.start(authString);
                         }, this.reconnectInterval);
                     }
                 });
     }
 
-    public Message(message: string) {
+    public message(message: string) {
         console.log(`[${new Date().toISOString()} - ${this.loggerAdress}] ${message}`);
     }
 
 
-    public Log(severity = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, channel: string, message: string | undefined, data: any) {
+    public log(severity = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, channel: string, message: string | undefined, data: any) {
         if (data instanceof Error) { data = { exception: data.message, stack: data.stack } }
         this.webSocket?.send(JSON.stringify({
             time: Date.now(),
