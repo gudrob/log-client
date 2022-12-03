@@ -25,15 +25,14 @@ export default class LogClient {
 
         let data = {
             cpu: os.loadavg()[0],
-            ram_free: os.freemem,
-            ram_total: os.totalmem,
-            disk_read: diskInfo.rIO_sec,
-            disk_write: diskInfo.wIO_sec,
-            disk_wait: diskInfo.tWaitTime,
-            disk_usage: diskUsageInfo[0].used,
-            disk_total: diskUsageInfo[0].size,
-            traffic_in: trafficInfo[0].rx_bytes / 1024,
-            traffic_out: trafficInfo[0].tx_bytes / 1024,
+            ru: os.totalmem() - os.freemem(),
+            rt: os.totalmem(),
+            dr: diskInfo.rIO_sec,
+            dw: diskInfo.wIO_sec,
+            du: diskUsageInfo[0].used,
+            dt: diskUsageInfo[0].size,
+            tin: trafficInfo[0].rx_bytes / 1024,
+            tout: trafficInfo[0].tx_bytes / 1024,
         };
 
         this.log(0, 'metrics', undefined, data);
@@ -73,8 +72,8 @@ export default class LogClient {
     }
 
 
-    public log(level = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 , channel: string, message: string | undefined, data: any) {
-        if (data instanceof Error) { data = { name:data.name, exception: data.message, stack: data.stack } }
+    public log(level = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9, channel: string, message: string | undefined, data: any) {
+        if (data instanceof Error) { data = { name: data.name, exception: data.message, stack: data.stack } }
         this.webSocket?.send(JSON.stringify({
             server: this.ownAdress,
             level,
