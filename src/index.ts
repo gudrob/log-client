@@ -25,8 +25,7 @@ export default class LogClient {
 
         let data = {
             cpu: os.loadavg()[0],
-            ru: os.totalmem() - os.freemem(),
-            rt: os.totalmem(),
+            ru: os.freemem() / os.totalmem(),
             dr: diskInfo.rIO_sec,
             dw: diskInfo.wIO_sec,
             du: diskUsageInfo[0].used,
