@@ -11,5 +11,5 @@ export default class LogClient {
     sendMetrics(): Promise<void>;
     start(authString: string): void;
     message(message: string): void;
-    log(severity: number | undefined, channel: string, message: string | undefined, data: any): void;
+    log(level: number | undefined, channel: string | undefined, message: string | undefined, data: any): void;
 }

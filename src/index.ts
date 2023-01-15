@@ -34,7 +34,7 @@ export default class LogClient {
             tout: trafficInfo[0].tx_bytes / 1024,
         };
 
-        this.log(0, 'metrics', undefined, data);
+        this.log(0, undefined, undefined, data);
     }
 
     public start(authString: string) {
@@ -71,10 +71,9 @@ export default class LogClient {
     }
 
 
-    public log(level = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9, channel: string, message: string | undefined, data: any) {
+    public log(level = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9, channel: string | undefined, message: string | undefined, data: any) {
         if (data instanceof Error) { data = { name: data.name, exception: data.message, stack: data.stack } }
         this.webSocket?.send(JSON.stringify({
-            server: this.ownAdress,
             level,
             time: Date.now(),
             channel,
