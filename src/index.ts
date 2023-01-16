@@ -6,7 +6,7 @@ export default class LogClient {
 
     private webSocket: WebSocket | undefined;
 
-    constructor(private ownAdress: string, public loggerAdress: string, authString: string, public reconnect = true, public reconnectInterval = 5000,
+    constructor(private name: string, public loggerAdress: string, authString: string, public reconnect = true, public reconnectInterval = 5000,
         public onClose: ((logger: LogClient, code: number) => void) | undefined = undefined,
         public onError: ((logger: LogClient, error: Error) => void) | undefined = undefined) {
 
@@ -28,8 +28,7 @@ export default class LogClient {
             ru: os.freemem() / os.totalmem(),
             dr: diskInfo.rIO_sec,
             dw: diskInfo.wIO_sec,
-            du: diskUsageInfo[0].used,
-            dt: diskUsageInfo[0].size,
+            du: Math.round(diskUsageInfo[0].used / diskUsageInfo[0].size * 100),
             tin: trafficInfo[0].rx_bytes / 1024,
             tout: trafficInfo[0].tx_bytes / 1024,
         };
@@ -39,8 +38,7 @@ export default class LogClient {
 
     public start(authString: string) {
         this.webSocket =
-
-            new WebSocket(`${this.loggerAdress}/log?auth=${authString}&name=${this.ownAdress}`)
+            new WebSocket(`${this.loggerAdress}/log?auth=${authString}&name=${this.name}`)
 
                 .on('open', () => {
                     this.message('Logger connected.');
@@ -48,9 +46,9 @@ export default class LogClient {
 
                 .on('error', (error: Error) => {
                     if (this.onError)
-                        this.onError(this, error);
-                    else
-                        this.message(error.message);
+                        return this.onError(this, error);
+
+                    this.message(error.message);
                 })
 
                 .on('close', (code: number) => {
@@ -71,7 +69,7 @@ export default class LogClient {
     }
 
 
-    public log(level = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9, channel: string | undefined, message: string | undefined, data: any) {
+    public log(level = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10, channel: string | undefined, message: string | undefined, data: any) {
         if (data instanceof Error) { data = { name: data.name, exception: data.message, stack: data.stack } }
         this.webSocket?.send(JSON.stringify({
             level,
