@@ -71,15 +71,14 @@ export default class LogClient {
 
     public log(level = 1 | 2 | 3 | 4 | 5 | 6, channel: string | undefined, message: string | undefined, data: any) {
         if (data instanceof Error) { data = { name: data.name, exception: data.message, stack: data.stack } }
-        try {
-            this.webSocket?.send(JSON.stringify({
-                level,
-                channel,
-                message,
-                data
-            }));
-        } catch (err: any) {
-            this.message(`Error while logging: ${err.message}`);
-        }
+
+        this.webSocket?.send(JSON.stringify({
+            level,
+            channel,
+            message,
+            data
+        }), (err) => {
+            if (err) this.message(`Error while logging: ${err.message}`);
+        });
     }
 }
