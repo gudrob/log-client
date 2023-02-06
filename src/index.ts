@@ -62,7 +62,7 @@ export default class LogClient {
                     } else if (this.reconnect) {
                         setTimeout(() => {
                             this.message('Attempting reconnect.');
-                            this.start(authString);
+                            this.start(authString, rejectUnauthorized);
                         }, this.reconnectInterval);
                     }
                 });
