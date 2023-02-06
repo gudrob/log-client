@@ -7,10 +7,11 @@ export default class LogClient {
     private webSocket: WebSocket | undefined;
 
     constructor(private name: string, public loggerAdress: string, authString: string, public reconnect = true, public reconnectInterval = 5000,
+        rejectUnauthorized = false,
         public onClose: ((logger: LogClient, code: number) => void) | undefined = undefined,
         public onError: ((logger: LogClient, error: Error) => void) | undefined = undefined) {
 
-        this.start(authString);
+        this.start(authString, rejectUnauthorized);
     }
 
     /**
@@ -36,9 +37,12 @@ export default class LogClient {
         this.log(undefined, undefined, undefined, data);
     }
 
-    public start(authString: string) {
+    public start(authString: string, rejectUnauthorized: boolean) {
         this.webSocket =
-            new WebSocket(`${this.loggerAdress}/log?auth=${authString}&name=${this.name}`)
+            new WebSocket(`${this.loggerAdress}/log?auth=${authString}&name=${this.name}`,
+                {
+                    rejectUnauthorized: rejectUnauthorized
+                })
 
                 .on('open', () => {
                     this.message('Logger connected.');
