@@ -7,9 +7,10 @@ export default class LogClient {
     private webSocket: WebSocket | undefined;
 
     constructor(private name: string, public loggerAdress: string, authString: string, public reconnect = true, public reconnectInterval = 5000,
-        rejectUnauthorized = false,
+        public rejectUnauthorized = false,
         public onClose: ((logger: LogClient, code: number) => void) | undefined = undefined,
-        public onError: ((logger: LogClient, error: Error) => void) | undefined = undefined) {
+        public onError: ((logger: LogClient, error: Error) => void) | undefined = undefined,
+        public overrideLogCommand: ((messsage: string, thisClient: LogClient) => void) | undefined = undefined) {
 
         this.start(authString, rejectUnauthorized);
     }
@@ -69,9 +70,12 @@ export default class LogClient {
     }
 
     public message(message: string) {
-        console.log(`[${new Date().toISOString()} - ${this.loggerAdress}] ${message}`);
+        if (this.overrideLogCommand !== undefined) {
+            this.overrideLogCommand(message, this);
+        } else {
+            console.log(`[${new Date().toISOString()} - ${this.loggerAdress}] ${message}`);
+        }
     }
-
 
     public log(level = 1 | 2 | 3 | 4 | 5 | 6, channel: string | undefined, message: string | undefined, data: any) {
         if (data instanceof Error) { data = { name: data.name, exception: data.message, stack: data.stack } }
