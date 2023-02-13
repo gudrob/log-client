@@ -23,18 +23,23 @@ export default class LogClient {
     }
 
     public async sendMetrics() {
-        let [diskInfo, trafficInfo, diskUsageInfo] = await Promise.all([si.disksIO(), si.networkStats(), si.fsSize()]);
+        let diskInfo = await si.disksIO();
+        let trafficInfo = await si.networkStats();
+        let diskUsageInfo = await si.fsSize();
+
+        console.log(diskInfo);
 
         let data = {
-            cpu: os.loadavg()[0],
-            ru: os.freemem() / os.totalmem(),
-            dr: diskInfo.rIO_sec,
-            dw: diskInfo.wIO_sec,
-            du: Math.round(diskUsageInfo[0].used / diskUsageInfo[0].size * 100),
-            tin: trafficInfo[0].rx_bytes / 1024,
-            tout: trafficInfo[0].tx_bytes / 1024,
+            cpu: Math.round(os.loadavg()[0] * 100) / 100,
+            ru: Math.round(os.freemem() / os.totalmem() * 100) / 100,
+            dr: diskInfo?.rIO_sec ?? 0,
+            dw: diskInfo?.wIO_sec ?? 0,
+            du: Math.round(diskUsageInfo[0].used / diskUsageInfo[0].size * 10000) / 100,
+            tin: Math.round(trafficInfo[0].rx_sec / 1000 / 10) / 100, //MB
+            tout: Math.round(trafficInfo[0].tx_sec / 1000 / 10) / 100, //MB
         };
 
+        //@ts-ignore
         this.log(undefined, undefined, undefined, data);
     }
 
@@ -77,7 +82,7 @@ export default class LogClient {
         }
     }
 
-    public log(level = 1 | 2 | 3 | 4 | 5 | 6, channel: string | undefined, message: string | undefined, data: any) {
+    public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string | undefined, message: string | undefined, data: any) {
         if (data instanceof Error) { data = { name: data.name, exception: data.message, stack: data.stack } }
 
         this.webSocket?.send(JSON.stringify({
