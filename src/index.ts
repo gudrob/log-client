@@ -28,6 +28,7 @@ export default class LogClient {
         let diskUsageInfo = await si.fsSize();
 
         const MB = 1000000;
+        const dataValues = ['cpu', 'ru', 'dr', 'dw', 'du', 'tin', 'tout'];
 
         let data: { [key: string]: number } = {
             cpu: os.loadavg()[0],
@@ -39,7 +40,7 @@ export default class LogClient {
             tout: trafficInfo[0].tx_sec / MB,
         };
 
-        Object.keys(data).forEach((element) => {
+        dataValues.forEach((element) => {
             data[element] = +data[element].toFixed(2);
         });
 
