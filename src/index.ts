@@ -18,7 +18,7 @@ export default class LogClient {
     /**
      * Starts the predefined metrics logger, which is designed to work with gudatr/log-server
      */
-    public startMetrics(interval: number) {
+    public startMetrics(interval: number = 15000) {
         setInterval(() => { this.sendMetrics() }, interval)
     }
 
@@ -27,19 +27,21 @@ export default class LogClient {
         let trafficInfo = await si.networkStats();
         let diskUsageInfo = await si.fsSize();
 
-        console.log(diskInfo);
-
-        let data = {
-            cpu: Math.round(os.loadavg()[0] * 100) / 100,
-            ru: Math.round(os.freemem() / os.totalmem() * 100) / 100,
+        let data: { [key: string]: number } = {
+            cpu: os.loadavg()[0],
+            ru: os.freemem() / os.totalmem() / 1000 / 1000,
             dr: diskInfo?.rIO_sec ?? 0,
             dw: diskInfo?.wIO_sec ?? 0,
-            du: Math.round(diskUsageInfo[0].used / diskUsageInfo[0].size * 10000) / 100,
-            tin: Math.round(trafficInfo[0].rx_sec / 1000 / 10) / 100, //MB
-            tout: Math.round(trafficInfo[0].tx_sec / 1000 / 10) / 100, //MB
+            du: diskUsageInfo[0].used / diskUsageInfo[0].size / 1000 / 1000,
+            tin: trafficInfo[0].rx_sec / 1000 / 1000,
+            tout: trafficInfo[0].tx_sec / 1000 / 1000,
         };
 
-        //@ts-ignore
+        Object.keys(data).forEach((element) => {
+            data[element] = +data[element].toFixed(2);
+        });
+
+        //@ts-ignore, premarily called this way to reduce traffic
         this.log(undefined, undefined, undefined, data);
     }
 
