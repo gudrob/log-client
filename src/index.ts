@@ -27,14 +27,16 @@ export default class LogClient {
         let trafficInfo = await si.networkStats();
         let diskUsageInfo = await si.fsSize();
 
+        const MB = 1000000;
+
         let data: { [key: string]: number } = {
             cpu: os.loadavg()[0],
-            ru: os.freemem() / os.totalmem() / 1000 / 1000,
+            ru: os.freemem() / os.totalmem() / MB,
             dr: diskInfo?.rIO_sec ?? 0,
             dw: diskInfo?.wIO_sec ?? 0,
-            du: diskUsageInfo[0].used / diskUsageInfo[0].size / 1000 / 1000,
-            tin: trafficInfo[0].rx_sec / 1000 / 1000,
-            tout: trafficInfo[0].tx_sec / 1000 / 1000,
+            du: diskUsageInfo[0].used / diskUsageInfo[0].size / MB,
+            tin: trafficInfo[0].rx_sec / MB,
+            tout: trafficInfo[0].tx_sec / MB,
         };
 
         Object.keys(data).forEach((element) => {
