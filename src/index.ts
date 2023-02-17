@@ -17,11 +17,22 @@ export default class LogClient {
 
     /**
      * Starts the predefined metrics logger, which is designed to work with gudatr/log-server
+     * You should start the Metrics logging only on one thread per application
      */
-    public startMetrics(interval: number = 15000) {
+    public startMetrics(interval: number = 20000) {
         setInterval(() => { this.sendMetrics() }, interval)
     }
 
+    /**
+     * Dispatches a metrics log entry containing
+     * CPU Load average for the last minute
+     * RAM used percentage
+     * Read IO per second
+     * Write IO per second
+     * Disk usge percentage
+     * Network read MB per second
+     * Network write MB per second
+     */
     public async sendMetrics() {
         let diskInfo = await si.disksIO();
         let trafficInfo = await si.networkStats();
@@ -32,19 +43,19 @@ export default class LogClient {
 
         let data: { [key: string]: number } = {
             cpu: os.loadavg()[0],
-            ru: os.freemem() / os.totalmem() / MB,
+            ru: os.freemem() / os.totalmem(),
             dr: diskInfo?.rIO_sec ?? 0,
             dw: diskInfo?.wIO_sec ?? 0,
-            du: diskUsageInfo[0].used / diskUsageInfo[0].size / MB,
+            du: diskUsageInfo[0].used / diskUsageInfo[0].size,
             tin: trafficInfo[0].rx_sec / MB,
-            tout: trafficInfo[0].tx_sec / MB,
+            tout: (trafficInfo[0].tx_sec - trafficInfo[0].rx_sec) / MB,
         };
 
         dataValues.forEach((element) => {
             data[element] = +data[element].toFixed(2);
         });
 
-        //@ts-ignore, premarily called this way to reduce traffic
+        //@ts-ignore, called this way to reduce traffic
         this.log(undefined, undefined, undefined, data);
     }
 
@@ -87,7 +98,7 @@ export default class LogClient {
         }
     }
 
-    public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string | undefined, message: string | undefined, data: any) {
+    public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: any) {
         if (data instanceof Error) { data = { name: data.name, exception: data.message, stack: data.stack } }
 
         this.webSocket?.send(JSON.stringify({
