@@ -33,30 +33,33 @@ export default class LogClient {
      * Network read MB per second
      * Network write MB per second
      */
+    private dataValues: string[] = [];
     public async sendMetrics() {
         let diskInfo = await si.disksIO();
         let trafficInfo = await si.networkStats();
         let diskUsageInfo = await si.fsSize();
 
-        const MB = 1000000;
-        const dataValues = ['cpu', 'ru', 'dr', 'dw', 'du', 'tin', 'tout'];
+        const MB = 1000000; //IEC 80000-13
 
         let data: { [key: string]: number } = {
             cpu: os.loadavg()[0],
-            ru: os.freemem() / os.totalmem(),
-            dr: diskInfo?.rIO_sec ?? 0,
-            dw: diskInfo?.wIO_sec ?? 0,
-            du: diskUsageInfo[0].used / diskUsageInfo[0].size,
-            tin: trafficInfo[0].rx_sec / MB,
-            tout: (trafficInfo[0].tx_sec - trafficInfo[0].rx_sec) / MB,
+            mem_used: 1 - (os.freemem() / os.totalmem()),
+            io_read: diskInfo?.rIO_sec ?? 0,
+            io_write: diskInfo?.wIO_sec ?? 0,
+            disk_used: diskUsageInfo[0].used / diskUsageInfo[0].size,
+            net_in: trafficInfo[0].rx_sec / MB,
+            net_out: trafficInfo[0].tx_sec / MB,
         };
 
-        dataValues.forEach((element) => {
-            data[element] = +data[element].toFixed(2);
-        });
+        if (this.dataValues.length === 0) {
+            this.dataValues = Object.keys(data);
+        }
 
-        //@ts-ignore, called this way to reduce traffic
-        this.log(undefined, undefined, undefined, data);
+        for (let element of this.dataValues) {
+            data[element] = +data[element].toFixed(2);
+        }
+
+        this.logMetrics(data);
     }
 
     public start(authString: string, rejectUnauthorized: boolean) {
@@ -90,12 +93,12 @@ export default class LogClient {
                 });
     }
 
-    public message(message: string) {
-        if (this.overrideLogCommand !== undefined) {
-            this.overrideLogCommand(message, this);
-        } else {
-            console.log(`[${new Date().toISOString()} - ${this.loggerAdress}] ${message}`);
+    public message(message: string): void {
+        if (this.overrideLogCommand) {
+            return this.overrideLogCommand(message, this);
         }
+
+        console.log(`[${new Date().toISOString()} - ${this.loggerAdress}] ${message}`);
     }
 
     public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: any) {
@@ -108,6 +111,12 @@ export default class LogClient {
             data
         }), (err) => {
             if (err) this.message(`Error while logging: ${err.message}`);
+        });
+    }
+
+    public logMetrics(data: { [key: string]: number }) {
+        this.webSocket?.send(JSON.stringify(data), (err) => {
+            if (err) this.message(`Error while logging metrics: ${err.message}`);
         });
     }
 }
