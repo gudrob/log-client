@@ -29,7 +29,7 @@ export default class LogClient {
      * RAM used percentage
      * Read IO per second
      * Write IO per second
-     * Disk usge percentage
+     * Disk usage percentage
      * Network read MB per second
      * Network write MB per second
      */
