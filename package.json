@@ -10,8 +10,10 @@
   "author": "GitHub/McDuckes",
   "license": "MIT",
   "dependencies": {
-    "@types/ws": "^8.2.0",
     "systeminformation": "^5.10.0",
     "ws": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.2.0"
   }
 }
