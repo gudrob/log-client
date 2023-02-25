@@ -42,11 +42,11 @@ export default class LogClient {
         const MB = 1000000; //IEC 80000-13
 
         let data: { [key: string]: number } = {
-            cpu: os.loadavg()[0],
-            mem_used: 1 - (os.freemem() / os.totalmem()),
+            cpu: os.loadavg()[0] * 100,
+            mem_used: (1 - os.freemem() / os.totalmem()) * 100,
             io_read: diskInfo?.rIO_sec ?? 0,
             io_write: diskInfo?.wIO_sec ?? 0,
-            disk_used: diskUsageInfo[0].used / diskUsageInfo[0].size,
+            disk_used: diskUsageInfo[0].used / diskUsageInfo[0].size * 100,
             net_in: trafficInfo[0].rx_sec / MB,
             net_out: trafficInfo[0].tx_sec / MB,
         };
