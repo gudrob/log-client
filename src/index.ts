@@ -35,11 +35,9 @@ export default class LogClient {
      */
     private dataValues: string[] = [];
     public async sendMetrics() {
-        let diskInfo = await si.disksIO();
-        let trafficInfo = await si.networkStats();
-        let diskUsageInfo = await si.fsSize();
+        let [diskInfo, trafficInfo, diskUsageInfo] = await Promise.all([si.disksIO(), si.networkStats(), si.fsSize()]);
 
-        const MB = 1000000; //IEC 80000-13
+        const MB = 1000000; //one MB according to IEC 80000-13
 
         let data: { [key: string]: number } = {
             cpu: os.loadavg()[0] * 100,
@@ -64,27 +62,24 @@ export default class LogClient {
 
     public start(authString: string, rejectUnauthorized: boolean) {
         this.webSocket =
-            new WebSocket(`${this.loggerAdress}/log?auth=${authString}&name=${this.name}`,
-                {
-                    rejectUnauthorized: rejectUnauthorized
-                })
+            new WebSocket(`${this.loggerAdress}/log?auth=${authString}&name=${this.name}`, { rejectUnauthorized })
 
                 .on('open', () => {
                     this.message('Logger connected.');
                 })
 
                 .on('error', (error: Error) => {
-                    if (this.onError)
-                        return this.onError(this, error);
+                    if (this.onError) return this.onError(this, error);
 
                     this.message(error.message);
                 })
 
                 .on('close', (code: number) => {
                     this.message('Logger disconnected. Code: ' + code);
-                    if (this.onClose) {
-                        this.onClose(this, code);
-                    } else if (this.reconnect) {
+
+                    if (this.onClose) return this.onClose(this, code);
+
+                    if (this.reconnect) {
                         setTimeout(() => {
                             this.message('Attempting reconnect.');
                             this.start(authString, rejectUnauthorized);
