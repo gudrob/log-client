@@ -70,6 +70,8 @@ export default class LogClient {
                 })
 
                 .on('close', (code: number) => {
+                    this.webSocket = undefined;
+
                     this.message('Logger disconnected. Code: ' + code);
 
                     if (this.onClose) return this.onClose(this, code);
