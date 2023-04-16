@@ -33,7 +33,6 @@ export default class LogClient {
      * Network read MB per second
      * Network write MB per second
      */
-    private dataValues: string[] = [];
     public async sendMetrics() {
         let [diskInfo, trafficInfo, diskUsageInfo] = await Promise.all([si.disksIO(), si.networkStats(), si.fsSize()]);
 
@@ -49,12 +48,8 @@ export default class LogClient {
             net_out: trafficInfo[0].tx_sec / MB,
         };
 
-        if (this.dataValues.length === 0) {
-            this.dataValues = Object.keys(data);
-        }
-
-        for (let element of this.dataValues) {
-            data[element] = +data[element].toFixed(2);
+        for (let key in data) {
+            data[key] = +data[key].toFixed(2);
         }
 
         this.logMetrics(data);

@@ -10,7 +10,6 @@ export default class LogClient {
     private webSocket;
     constructor(name: string, loggerAdress: string, authString: string, reconnect?: boolean, reconnectInterval?: number, rejectUnauthorized?: boolean, onClose?: ((logger: LogClient, code: number) => void) | undefined, onError?: ((logger: LogClient, error: Error) => void) | undefined, overrideLogCommand?: ((messsage: string, thisClient: LogClient) => void) | undefined);
     startMetrics(interval?: number): void;
-    private dataValues;
     sendMetrics(): Promise<void>;
     start(authString: string, rejectUnauthorized: boolean): void;
     message(message: string): void;
