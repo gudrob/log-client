@@ -13,7 +13,7 @@ export default class LogClient {
     sendMetrics(): Promise<void>;
     start(authString: string, rejectUnauthorized: boolean): void;
     message(message: string): void;
-    log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: any): void;
+    log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data?: any): void;
     logMetrics(data: {
         [key: string]: number;
     }): void;

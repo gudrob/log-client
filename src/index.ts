@@ -93,7 +93,7 @@ export default class LogClient {
         console.log(`[${new Date().toISOString()} - ${this.loggerAdress}] ${message}`);
     }
 
-    public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: any) {
+    public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: any = {}) {
         if (data instanceof Error) { data = { name: data.name, exception: data.message, stack: data.stack } }
 
         this.webSocket?.send(JSON.stringify({
