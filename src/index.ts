@@ -9,19 +9,17 @@ export default class LogClient {
 
     private webSocket: WebSocket | undefined;
 
-    constructor(private name: string, public loggerAdress: string, authString: string, public reconnect = true, public reconnectInterval = 5000,
+    constructor(private name: string, public loggerAdress: string, public reconnect = true, public reconnectInterval = 5000,
         public rejectUnauthorized = false,
         public perMessageDeflate: boolean | undefined,
         public onClose: ((logger: LogClient, code: number) => void) | undefined,
         public onError: ((logger: LogClient, error: Error) => void) | undefined,
         public overrideLogCommand: ((messsage: string, thisClient: LogClient) => void) | undefined) {
-
-        this.start(authString, rejectUnauthorized, perMessageDeflate);
     }
 
     /**
      * Starts the predefined metrics logger, which is designed to work with gudatr/log-server
-     * You should start the Metrics logging only on one thread per application
+     * You should start the metrics logging only on one thread per application
      */
     public startMetrics(interval: number = 20000) {
         setInterval(() => { this.sendMetrics() }, interval)
@@ -29,13 +27,13 @@ export default class LogClient {
 
     /**
      * Dispatches a metrics log entry containing
-     * CPU Load average for the last minute
-     * RAM used percentage
-     * Read IO per second
-     * Write IO per second
-     * Disk usage percentage
-     * Network read MB per second
-     * Network write MB per second
+     * - CPU Load average for the last minute
+     * - RAM used percentage
+     * - Read IO per second
+     * - Write IO per second
+     * - Disk usage percentage
+     * - Network read MB per second
+     * - Network write MB per second
      */
     public async sendMetrics() {
         let [diskInfo, trafficInfo, diskUsageInfo] = await Promise.all([si.disksIO(), si.networkStats(), si.fsSize()]);
@@ -60,14 +58,22 @@ export default class LogClient {
         this.logMetrics(data);
     }
 
-    public start(authString: string, rejectUnauthorized: boolean, perMessageDeflate: boolean | undefined) {
-        let url = `${this.loggerAdress}/log?auth=${authString}&name=${this.name}`;
+    public open(): boolean {
+        return !!this.webSocket;
+    }
 
-        try {
-            new URL(url)
-        } catch (err: any) {
-            return this.message('Invalid url ' + url);
-        }
+    /**
+     * Initializes the websocket connection
+     * @param passphrase - the passphrase for the logging endpoint
+     * @param rejectUnauthorized - if wss is chosen, determines if self-signed certificates, etc. will be rejected
+     * @param perMessageDeflate - enables per message deflate if the server also supports it
+     * @throws if the logger address is invalid
+     * @returns 
+     */
+    public start(passphrase: string, rejectUnauthorized: boolean, perMessageDeflate: boolean | undefined) {
+        let url = `${this.loggerAdress}/log?auth=${passphrase}&name=${this.name}`;
+
+        new URL(url);
 
         this.webSocket = new WebSocket(url, {
             rejectUnauthorized,
@@ -94,7 +100,7 @@ export default class LogClient {
                 if (this.reconnect) {
                     setTimeout(() => {
                         this.message('Attempting reconnect.');
-                        this.start(authString, rejectUnauthorized, perMessageDeflate);
+                        this.start(passphrase, rejectUnauthorized, perMessageDeflate);
                     }, this.reconnectInterval);
                 }
             });
