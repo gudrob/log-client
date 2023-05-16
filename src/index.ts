@@ -64,33 +64,35 @@ export default class LogClient {
             return this.message('Invalid url ' + url);
         }
 
-        this.webSocket =
-            new WebSocket(url, { rejectUnauthorized })
+        this.webSocket = new WebSocket(url, {
+            rejectUnauthorized,
+            perMessageDeflate: false,
+        })
 
-                .on('open', () => {
-                    this.message('Logger connected.');
-                })
+            .on('open', () => {
+                this.message('Logger connected.');
+            })
 
-                .on('error', (error: Error) => {
-                    if (this.onError) return this.onError(this, error);
+            .on('error', (error: Error) => {
+                if (this.onError) return this.onError(this, error);
 
-                    this.message(error.message);
-                })
+                this.message(error.message);
+            })
 
-                .on('close', (code: number) => {
-                    this.webSocket = undefined;
+            .on('close', (code: number) => {
+                this.webSocket = undefined;
 
-                    this.message('Logger disconnected. Code: ' + code);
+                this.message('Logger disconnected. Code: ' + code);
 
-                    if (this.onClose) return this.onClose(this, code);
+                if (this.onClose) return this.onClose(this, code);
 
-                    if (this.reconnect) {
-                        setTimeout(() => {
-                            this.message('Attempting reconnect.');
-                            this.start(authString, rejectUnauthorized);
-                        }, this.reconnectInterval);
-                    }
-                });
+                if (this.reconnect) {
+                    setTimeout(() => {
+                        this.message('Attempting reconnect.');
+                        this.start(authString, rejectUnauthorized);
+                    }, this.reconnectInterval);
+                }
+            });
     }
 
     public message(message: string): void {
@@ -102,9 +104,12 @@ export default class LogClient {
     }
 
     public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: any = {}) {
+
+        if (!this.webSocket) return;
+
         if (data instanceof Error) { data = { msg: data.message, stack: data.stack } }
 
-        this.webSocket?.send(JSON.stringify([
+        this.webSocket.send(JSON.stringify([
             level,
             channel,
             message,
@@ -115,7 +120,9 @@ export default class LogClient {
     }
 
     public logMetrics(data: { [key: string]: number }) {
-        this.webSocket?.send(JSON.stringify(data), (err) => {
+        if (!this.webSocket) return;
+
+        this.webSocket.send(JSON.stringify(data), (err) => {
             if (err) this.message(`Error while logging metrics: ${err.message}`);
         });
     }
