@@ -8,11 +8,12 @@ export default class LogClient {
 
     constructor(private name: string, public loggerAdress: string, authString: string, public reconnect = true, public reconnectInterval = 5000,
         public rejectUnauthorized = false,
-        public onClose: ((logger: LogClient, code: number) => void) | undefined = undefined,
-        public onError: ((logger: LogClient, error: Error) => void) | undefined = undefined,
-        public overrideLogCommand: ((messsage: string, thisClient: LogClient) => void) | undefined = undefined) {
+        public perMessageDeflate: boolean | undefined,
+        public onClose: ((logger: LogClient, code: number) => void) | undefined,
+        public onError: ((logger: LogClient, error: Error) => void) | undefined,
+        public overrideLogCommand: ((messsage: string, thisClient: LogClient) => void) | undefined) {
 
-        this.start(authString, rejectUnauthorized);
+        this.start(authString, rejectUnauthorized, perMessageDeflate);
     }
 
     /**
@@ -36,13 +37,16 @@ export default class LogClient {
     public async sendMetrics() {
         let [diskInfo, trafficInfo, diskUsageInfo] = await Promise.all([si.disksIO(), si.networkStats(), si.fsSize()]);
 
+        //@ts-ignore
+        diskInfo ??= {};
+
         const MB = 1000000; //one MB according to IEC 80000-13
 
         let data: { [key: string]: number } = {
             cpu: os.loadavg()[0] * 100,
             mem_used: (1 - os.freemem() / os.totalmem()) * 100,
-            io_read: diskInfo?.rIO_sec ?? 0,
-            io_write: diskInfo?.wIO_sec ?? 0,
+            io_read: diskInfo.rIO_sec ?? 0,
+            io_write: diskInfo.wIO_sec ?? 0,
             disk_used: diskUsageInfo[0].used / diskUsageInfo[0].size * 100,
             net_in: trafficInfo[0].rx_sec / MB,
             net_out: trafficInfo[0].tx_sec / MB,
@@ -55,7 +59,7 @@ export default class LogClient {
         this.logMetrics(data);
     }
 
-    public start(authString: string, rejectUnauthorized: boolean) {
+    public start(authString: string, rejectUnauthorized: boolean, perMessageDeflate: boolean | undefined) {
         let url = `${this.loggerAdress}/log?auth=${authString}&name=${this.name}`;
 
         try {
@@ -66,7 +70,7 @@ export default class LogClient {
 
         this.webSocket = new WebSocket(url, {
             rejectUnauthorized,
-            perMessageDeflate: false,
+            perMessageDeflate
         })
 
             .on('open', () => {
@@ -89,7 +93,7 @@ export default class LogClient {
                 if (this.reconnect) {
                     setTimeout(() => {
                         this.message('Attempting reconnect.');
-                        this.start(authString, rejectUnauthorized);
+                        this.start(authString, rejectUnauthorized, perMessageDeflate);
                     }, this.reconnectInterval);
                 }
             });
