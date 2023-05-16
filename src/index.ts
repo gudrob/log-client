@@ -56,8 +56,16 @@ export default class LogClient {
     }
 
     public start(authString: string, rejectUnauthorized: boolean) {
+        let url = `${this.loggerAdress}/log?auth=${authString}&name=${this.name}`;
+
+        try {
+            new URL(url)
+        } catch (err: any) {
+            return this.message('Invalid url ' + url);
+        }
+
         this.webSocket =
-            new WebSocket(`${this.loggerAdress}/log?auth=${authString}&name=${this.name}`, { rejectUnauthorized })
+            new WebSocket(url, { rejectUnauthorized })
 
                 .on('open', () => {
                     this.message('Logger connected.');
@@ -94,14 +102,14 @@ export default class LogClient {
     }
 
     public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: any = {}) {
-        if (data instanceof Error) { data = { name: data.name, exception: data.message, stack: data.stack } }
+        if (data instanceof Error) { data = { msg: data.message, stack: data.stack } }
 
-        this.webSocket?.send(JSON.stringify({
+        this.webSocket?.send(JSON.stringify([
             level,
             channel,
             message,
             data
-        }), (err) => {
+        ]), (err) => {
             if (err) this.message(`Error while logging: ${err.message}`);
         });
     }
