@@ -2,6 +2,8 @@ import WebSocket from 'ws';
 import os from 'os';
 import si from "systeminformation"
 
+const MB = 1000000; //one MB according to IEC 80000-13
+
 export default class LogClient {
 
     private webSocket: WebSocket | undefined;
@@ -38,9 +40,7 @@ export default class LogClient {
         let [diskInfo, trafficInfo, diskUsageInfo] = await Promise.all([si.disksIO(), si.networkStats(), si.fsSize()]);
 
         //@ts-ignore
-        diskInfo ??= {};
-
-        const MB = 1000000; //one MB according to IEC 80000-13
+        if (!diskInfo) diskInfo = {};
 
         let data: { [key: string]: number } = {
             cpu: os.loadavg()[0] * 100,
