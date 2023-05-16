@@ -3,6 +3,7 @@ import os from 'os';
 import si from "systeminformation"
 
 const MB = 1000000; //one MB according to IEC 80000-13
+const SINGLE_APOSTROPHE_REGEX = /'/g;
 
 export default class LogClient {
 
@@ -107,18 +108,21 @@ export default class LogClient {
         console.log(`[${new Date().toISOString()} - ${this.loggerAdress}] ${message}`);
     }
 
-    public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: any = {}) {
+    public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: object | undefined) {
 
         if (!this.webSocket) return;
 
-        if (data instanceof Error) { data = { msg: data.message, stack: data.stack } }
+        if (data instanceof Error) { data = { err: data.stack } }
 
-        this.webSocket.send(JSON.stringify([
-            level,
-            channel,
-            message,
-            data
-        ]), (err) => {
+        let sendData;
+
+        if (data) {
+            sendData = level + "'" + channel.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + message.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + JSON.stringify(data);
+        } else {
+            sendData = level + "'" + channel.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + message.replace(SINGLE_APOSTROPHE_REGEX, '"');
+        }
+
+        this.webSocket.send(sendData, (err) => {
             if (err) this.message(`Error while logging: ${err.message}`);
         });
     }
