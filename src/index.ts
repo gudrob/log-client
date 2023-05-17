@@ -13,8 +13,7 @@ export default class LogClient {
         public rejectUnauthorized = false,
         public perMessageDeflate: boolean | undefined,
         public onClose: ((logger: LogClient, code: number) => void) | undefined,
-        public onError: ((logger: LogClient, error: Error) => void) | undefined,
-        public overrideLogCommand: ((messsage: string, thisClient: LogClient) => void) | undefined) {
+        public onError: ((logger: LogClient, error: Error) => void) | undefined) {
     }
 
     /**
@@ -80,64 +79,51 @@ export default class LogClient {
             perMessageDeflate
         })
 
-            .on('open', () => {
-                this.message('Logger connected.');
-            })
-
             .on('error', (error: Error) => {
                 if (this.onError) return this.onError(this, error);
-
-                this.message(error.message);
             })
 
             .on('close', (code: number) => {
                 this.webSocket = undefined;
 
-                this.message('Logger disconnected. Code: ' + code);
-
                 if (this.onClose) return this.onClose(this, code);
 
                 if (this.reconnect) {
                     setTimeout(() => {
-                        this.message('Attempting reconnect.');
                         this.start(passphrase, rejectUnauthorized, perMessageDeflate);
                     }, this.reconnectInterval);
                 }
             });
     }
 
-    public message(message: string): void {
-        if (this.overrideLogCommand) {
-            return this.overrideLogCommand(message, this);
-        }
-
-        console.log(`[${new Date().toISOString()} - ${this.loggerAdress}] ${message}`);
-    }
-
-    public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: object | undefined) {
+    public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: object | string | undefined) {
 
         if (!this.webSocket) return;
 
-        if (data instanceof Error) { data = { err: data.stack } }
-
         let sendData;
 
-        if (data) {
-            sendData = level + "'" + channel.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + message.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + JSON.stringify(data);
-        } else {
-            sendData = level + "'" + channel.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + message.replace(SINGLE_APOSTROPHE_REGEX, '"');
+        if (data instanceof Error) {
+            data = data.stack ? data.stack : data.message;
         }
 
-        this.webSocket.send(sendData, (err) => {
-            if (err) this.message(`Error while logging: ${err.message}`);
-        });
+        switch (typeof data) {
+            case 'string':
+                sendData = level + "'" + channel.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + message.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + data;
+                break;
+            case 'object':
+                sendData = level + "'" + channel.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + message.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + JSON.stringify(data);
+                break;
+            default:
+                sendData = level + "'" + channel.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + message.replace(SINGLE_APOSTROPHE_REGEX, '"');
+                break;
+        }
+
+        this.webSocket.send(sendData);
     }
 
     public logMetrics(data: { [key: string]: number }) {
         if (!this.webSocket) return;
 
-        this.webSocket.send(JSON.stringify(data), (err) => {
-            if (err) this.message(`Error while logging metrics: ${err.message}`);
-        });
+        this.webSocket.send(JSON.stringify(data));
     }
 }
