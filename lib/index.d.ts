@@ -35,7 +35,7 @@ export default class LogClient {
      * @returns
      */
     start(passphrase: string, rejectUnauthorized: boolean, perMessageDeflate: boolean | undefined): void;
-    log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: object | string | undefined): void;
+    log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data?: object | string | undefined): void;
     logMetrics(data: {
         [key: string]: number;
     }): void;

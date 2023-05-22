@@ -96,7 +96,7 @@ export default class LogClient {
             });
     }
 
-    public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: object | string | undefined) {
+    public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: object | string | undefined = undefined) {
 
         if (!this.webSocket) return;
 
