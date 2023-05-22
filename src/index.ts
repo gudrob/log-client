@@ -9,11 +9,11 @@ export default class LogClient {
 
     private webSocket: WebSocket | undefined;
 
-    constructor(private name: string, public loggerAdress: string, public reconnect = true, public reconnectInterval = 5000,
+    constructor(private name: string, public loggerAdress: string, public reconnect = true, public reconnectIntervalMs = 5000,
         public rejectUnauthorized = false,
-        public perMessageDeflate: boolean | undefined,
-        public onClose: ((logger: LogClient, code: number) => void) | undefined,
-        public onError: ((logger: LogClient, error: Error) => void) | undefined) {
+        public perMessageDeflate: boolean | undefined = undefined,
+        public onClose: ((logger: LogClient, code: number) => void) | undefined = undefined,
+        public onError: ((logger: LogClient, error: Error) => void) | undefined = undefined) {
     }
 
     /**
@@ -91,7 +91,7 @@ export default class LogClient {
                 if (this.reconnect) {
                     setTimeout(() => {
                         this.start(passphrase, rejectUnauthorized, perMessageDeflate);
-                    }, this.reconnectInterval);
+                    }, this.reconnectIntervalMs);
                 }
             });
     }

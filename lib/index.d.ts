@@ -2,13 +2,13 @@ export default class LogClient {
     private name;
     loggerAdress: string;
     reconnect: boolean;
-    reconnectInterval: number;
+    reconnectIntervalMs: number;
     rejectUnauthorized: boolean;
     perMessageDeflate: boolean | undefined;
     onClose: ((logger: LogClient, code: number) => void) | undefined;
     onError: ((logger: LogClient, error: Error) => void) | undefined;
     private webSocket;
-    constructor(name: string, loggerAdress: string, reconnect: boolean, reconnectInterval: number, rejectUnauthorized: boolean, perMessageDeflate: boolean | undefined, onClose: ((logger: LogClient, code: number) => void) | undefined, onError: ((logger: LogClient, error: Error) => void) | undefined);
+    constructor(name: string, loggerAdress: string, reconnect?: boolean, reconnectIntervalMs?: number, rejectUnauthorized?: boolean, perMessageDeflate?: boolean | undefined, onClose?: ((logger: LogClient, code: number) => void) | undefined, onError?: ((logger: LogClient, error: Error) => void) | undefined);
     /**
      * Starts the predefined metrics logger, which is designed to work with gudatr/log-server
      * You should start the metrics logging only on one thread per application
