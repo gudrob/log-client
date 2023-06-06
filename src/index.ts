@@ -4,6 +4,7 @@ import si from "systeminformation"
 
 const MB = 1000000; //one MB according to IEC 80000-13
 const SINGLE_APOSTROPHE_REGEX = /'/g;
+const MetricsBufferSize = 7 * 4 + 1;
 
 export default class LogClient {
 
@@ -35,26 +36,24 @@ export default class LogClient {
      * - Network write MB per second
      */
     public async sendMetrics() {
+        if (!this.webSocket) return;
+
         let [diskInfo, trafficInfo, diskUsageInfo] = await Promise.all([si.disksIO(), si.networkStats(), si.fsSize()]);
 
-        //@ts-ignore
-        if (!diskInfo) diskInfo = {};
+        if (!this.webSocket) return;
 
-        let data: { [key: string]: number } = {
-            cpu: os.loadavg()[0] * 100,
-            mem_used: (1 - os.freemem() / os.totalmem()) * 100,
-            io_read: diskInfo.rIO_sec ?? 0,
-            io_write: diskInfo.wIO_sec ?? 0,
-            disk_used: diskUsageInfo[0].used / diskUsageInfo[0].size * 100,
-            net_in: trafficInfo[0].rx_sec / MB,
-            net_out: trafficInfo[0].tx_sec / MB,
-        };
+        let metricsBuffer = Buffer.allocUnsafe(MetricsBufferSize);
 
-        for (let key in data) {
-            data[key] = +data[key].toFixed(2);
-        }
+        metricsBuffer[0] = 0;
+        metricsBuffer.writeFloatBE(os.loadavg()[0] * 100, 1);
+        metricsBuffer.writeFloatBE((1 - os.freemem() / os.totalmem()) * 100, 5);
+        metricsBuffer.writeFloatBE(diskInfo.rIO_sec ? diskInfo.rIO_sec : 0, 9);
+        metricsBuffer.writeFloatBE(diskInfo.wIO_sec ? diskInfo.wIO_sec : 0, 13);
+        metricsBuffer.writeFloatBE(diskUsageInfo[0].used / diskUsageInfo[0].size * 100, 17);
+        metricsBuffer.writeFloatBE(trafficInfo[0].rx_sec / MB, 21);
+        metricsBuffer.writeFloatBE(trafficInfo[0].tx_sec / MB, 25);
 
-        this.logMetrics(data);
+        this.webSocket.send(metricsBuffer);
     }
 
     public open(): boolean {
@@ -96,11 +95,18 @@ export default class LogClient {
             });
     }
 
+    /**
+     * Log a message with the provided parameters
+     * @param level The message's level ranging from 1 to 6 where 1 is the least and 6 the most important
+     * @param channel A channel name to group messages by on the server side, shoud not contain apostrophes
+     * @param message The message itself, shoud not contain apostrophes
+     * @param data Data to provide context for the message
+     * @returns 
+     */
     public log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data: object | string | undefined = undefined) {
 
         if (!this.webSocket) return;
 
-        let sendData;
 
         if (data instanceof Error) {
             data = data.stack ? data.stack : data.message;
@@ -108,22 +114,14 @@ export default class LogClient {
 
         switch (typeof data) {
             case 'string':
-                sendData = level + "'" + channel.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + message.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + data;
+                this.webSocket.send(level + "'" + channel.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + message.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + data);
                 break;
             case 'object':
-                sendData = level + "'" + channel.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + message.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + JSON.stringify(data);
+                this.webSocket.send(level + "'" + channel.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + message.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + JSON.stringify(data));
                 break;
             default:
-                sendData = level + "'" + channel.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + message.replace(SINGLE_APOSTROPHE_REGEX, '"');
+                this.webSocket.send(level + "'" + channel.replace(SINGLE_APOSTROPHE_REGEX, '"') + "'" + message.replace(SINGLE_APOSTROPHE_REGEX, '"'));
                 break;
         }
-
-        this.webSocket.send(sendData);
-    }
-
-    public logMetrics(data: { [key: string]: number }) {
-        if (!this.webSocket) return;
-
-        this.webSocket.send(JSON.stringify(data));
     }
 }
