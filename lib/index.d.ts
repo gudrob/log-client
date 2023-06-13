@@ -35,8 +35,13 @@ export default class LogClient {
      * @returns
      */
     start(passphrase: string, rejectUnauthorized: boolean, perMessageDeflate: boolean | undefined): void;
+    /**
+     * Log a message with the provided parameters
+     * @param level The message's level ranging from 1 to 6 where 1 is the least and 6 the most important
+     * @param channel A channel name to group messages by on the server side, shoud not contain apostrophes
+     * @param message The message itself, shoud not contain apostrophes
+     * @param data Data to provide context for the message
+     * @returns
+     */
     log(level: 1 | 2 | 3 | 4 | 5 | 6, channel: string, message: string, data?: object | string | undefined): void;
-    logMetrics(data: {
-        [key: string]: number;
-    }): void;
 }
